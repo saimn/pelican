@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 
-import os
-import math
-import random
 import logging
-import datetime
+import math
+import os
+import random
 import shutil
 
 from codecs import open
 from collections import defaultdict
+from datetime import datetime
 from functools import partial
 from itertools import chain, groupby
 from operator import attrgetter, itemgetter
 
-from jinja2 import (
-        Environment, FileSystemLoader, PrefixLoader, ChoiceLoader, BaseLoader,
-        TemplateNotFound
-)
+from jinja2 import (Environment, FileSystemLoader, PrefixLoader, ChoiceLoader,
+                    BaseLoader, TemplateNotFound)
 
-from pelican.contents import (
-        Article, Page, Category, Static, is_valid_content
-)
+from pelican.contents import (Article, Author, Page, Category, Static, Tag,
+                              is_valid_content)
 from pelican.readers import read_file
 from pelican.utils import copy, process_translations, mkdir_p, DateFormatter
 from pelican import signals
@@ -36,7 +33,7 @@ class Generator(object):
 
     def __init__(self, *args, **kwargs):
         for idx, item in enumerate(('context', 'settings', 'path', 'theme',
-                'output_path', 'markup')):
+                                    'output_path', 'markup', 'cache')):
             setattr(self, item, args[idx])
 
         for arg, value in kwargs.items():
@@ -126,12 +123,40 @@ class Generator(object):
         return files
 
     def read_file(self, f, **kwargs):
-        try:
-            content, metadata = read_file(f, **kwargs)
-            return content, metadata
-        except Exception as e:
-            logger.warning('Could not process %s\n%s' % (f, str(e)))
-            return None, None
+        key = os.path.relpath(f.encode('utf-8'), self.path)
+        logger.debug('Reading ' + f)
+
+        if (key in self.cache and
+            self.cache[key]['timestamp'] == os.path.getmtime(f)):
+
+            logger.debug('--> Get content and metadata from cache')
+            content = self.cache[key]['content']
+            metadata = self.cache[key]['metadata']
+
+            if 'author' in metadata:
+                metadata['author'] = Author(metadata['author'], self.settings)
+            if 'category' in metadata:
+                metadata['category'] = Category(metadata['category'],
+                                                self.settings)
+            if 'date' in metadata:
+                metadata['date'] = datetime.fromtimestamp(metadata['date'])
+            if 'tags' in metadata:
+                metadata['tags'] = [Tag(name, self.settings)
+                                    for name in metadata['tags']]
+        else:
+            try:
+                content, metadata = read_file(f, **kwargs)
+                logger.debug('--> Store content and metadata in the cache')
+                self.cache[key] = {
+                    'content': content,
+                    'metadata': metadata,
+                    'timestamp': os.path.getmtime(f)
+                }
+            except Exception as e:
+                logger.warning('Could not process %s\n%s' % (f, str(e)))
+                content, metadata = None, None
+
+        return content, metadata
 
     def add_source_path(self, content):
         location = content.get_relative_source_path()
@@ -412,11 +437,10 @@ class ArticlesGenerator(Generator):
 
             if 'date' not in metadata and self.settings.get('DEFAULT_DATE'):
                 if self.settings['DEFAULT_DATE'] == 'fs':
-                    metadata['date'] = datetime.datetime.fromtimestamp(
+                    metadata['date'] = datetime.fromtimestamp(
                             os.stat(f).st_ctime)
                 else:
-                    metadata['date'] = datetime.datetime(
-                            *self.settings['DEFAULT_DATE'])
+                    metadata['date'] = datetime(*self.settings['DEFAULT_DATE'])
 
             signals.article_generate_context.send(self, metadata=metadata)
             article = Article(content, metadata, settings=self.settings,

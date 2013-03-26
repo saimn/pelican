@@ -2,16 +2,21 @@
 from __future__ import unicode_literals, print_function
 import six
 
+import argparse
+import codecs
+import json
+import logging
 import os
 import re
 import sys
 import time
-import logging
-import argparse
 import locale
 
-from pelican import signals
+from datetime import datetime
+from json import JSONEncoder
 
+from pelican import signals
+from pelican.contents import Author, Category, Tag
 from pelican.generators import (ArticlesGenerator, PagesGenerator,
                                 StaticGenerator, PdfGenerator,
                                 SourceFileGenerator, TemplatePagesGenerator)
@@ -29,6 +34,24 @@ DEFAULT_CONFIG_NAME = 'pelicanconf.py'
 
 
 logger = logging.getLogger(__name__)
+
+
+class CustomEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime):
+            # PY3 issue? isoformat returns a str on py2...
+            return time.mktime(o.timetuple())
+        elif isinstance(o, Tag):
+            # PY3 issue?
+            return str(o)
+        elif isinstance(o, Category):
+            # PY3 issue?
+            return str(o)
+        elif isinstance(o, Author):
+            # PY3 issue?
+            return str(o)
+        else:
+            return super(CustomEncoder, self).default(o)
 
 
 class Pelican(object):
@@ -155,6 +178,13 @@ class Pelican(object):
         context = self.settings.copy()
         context['filenames'] = {}  # share the dict between all the generators
         context['localsiteurl'] = self.settings.get('SITEURL')  # share
+
+        if os.path.isfile(self.settings.get('CACHE_FILE', '')):
+            with codecs.open(self.settings['CACHE_FILE'], 'r', 'utf-8') as f:
+                self.cache = json.load(f)
+        else:
+            self.cache = {}
+
         generators = [
             cls(
                 context,
@@ -163,12 +193,16 @@ class Pelican(object):
                 self.theme,
                 self.output_path,
                 self.markup,
+                self.cache
             ) for cls in self.get_generator_classes()
         ]
 
         for p in generators:
             if hasattr(p, 'generate_context'):
                 p.generate_context()
+
+        with codecs.open(self.settings['CACHE_FILE'], 'w', 'utf-8') as f:
+            json.dump(self.cache, f, cls=CustomEncoder)
 
         # erase the directory if it is not the source and if that's
         # explicitely asked
