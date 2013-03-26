@@ -125,6 +125,14 @@ class Generator(object):
             files.append(path)  # can't walk non-directories
         return files
 
+    def read_file(self, f, **kwargs):
+        try:
+            content, metadata = read_file(f, **kwargs)
+            return content, metadata
+        except Exception as e:
+            logger.warning('Could not process %s\n%s' % (f, str(e)))
+            return None, None
+
     def add_source_path(self, content):
         location = content.get_relative_source_path()
         self.context['filenames'][location] = content
@@ -379,14 +387,13 @@ class ArticlesGenerator(Generator):
             os.path.join(self.path, self.settings['ARTICLE_DIR'])
         )
         all_articles = []
-        for f in self.get_files(
-                article_path,
-                exclude=self.settings['ARTICLE_EXCLUDES']):
-            try:
-                signals.article_generate_preread.send(self)
-                content, metadata = read_file(f, settings=self.settings)
-            except Exception as e:
-                logger.warning('Could not process %s\n%s' % (f, str(e)))
+
+        for f in self.get_files(article_path,
+                                exclude=self.settings['ARTICLE_EXCLUDES']):
+            signals.article_generate_preread.send(self)
+
+            content, metadata = self.read_file(f, settings=self.settings)
+            if not content and not metadata:
                 continue
 
             # if no category is set, use the name of the path as a category
@@ -507,14 +514,15 @@ class PagesGenerator(Generator):
     def generate_context(self):
         all_pages = []
         hidden_pages = []
+
         for f in self.get_files(
                 os.path.join(self.path, self.settings['PAGE_DIR']),
                 exclude=self.settings['PAGE_EXCLUDES']):
-            try:
-                content, metadata = read_file(f, settings=self.settings)
-            except Exception as e:
-                logger.warning('Could not process %s\n%s' % (f, str(e)))
+
+            content, metadata = self.read_file(f, settings=self.settings)
+            if not content and not metadata:
                 continue
+
             signals.pages_generate_context.send(self, metadata=metadata)
             page = Page(content, metadata, settings=self.settings,
                         source_path=f, context=self.context)
@@ -567,9 +575,11 @@ class StaticGenerator(Generator):
         for static_path in self.settings['STATIC_PATHS']:
             for f in self.get_files(
                     os.path.join(self.path, static_path), extensions=False):
+
                 f_rel = os.path.relpath(f, self.path)
                 content, metadata = read_file(
                     f, fmt='static', settings=self.settings)
+
                 # TODO remove this hardcoded 'static' subdirectory
                 metadata['save_as'] = os.path.join('static', f_rel)
                 metadata['url'] = pelican.utils.path_to_url(metadata['save_as'])
