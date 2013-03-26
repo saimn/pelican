@@ -90,7 +90,8 @@ _DEFAULT_CONFIG = {'PATH': os.curdir,
                    'SUMMARY_MAX_LENGTH': 50,
                    'PLUGINS': [],
                    'TEMPLATE_PAGES': {},
-                   'IGNORE_FILES': []
+                   'IGNORE_FILES': [],
+                   'CACHE_FILE': 'pelican.db'
                    }
 
 

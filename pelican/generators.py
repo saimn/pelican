@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 
-import os
-import math
-import random
-import logging
 import datetime
+import logging
+import math
+import os
+import random
+import shelve
 import shutil
 
 from codecs import open
@@ -123,12 +124,28 @@ class Generator(object):
         return files
 
     def read_file(self, f, **kwargs):
-        try:
-            content, metadata = read_file(f, **kwargs)
-            return content, metadata
-        except Exception as e:
-            logger.warning('Could not process %s\n%s' % (f, str(e)))
-            return None, None
+        cache = shelve.open(self.settings['CACHE_FILE'])
+        key = os.path.relpath(f.encode('utf-8'), self.path)
+        logger.debug('Reading ' + f)
+
+        if key in cache and cache[key]['timestamp'] == os.path.getmtime(f):
+            logger.debug('--> Get content and metadata from cache')
+            content = cache[key]['content']
+            metadata = cache[key]['metadata']
+        else:
+            try:
+                content, metadata = read_file(f, **kwargs)
+                cache[key] = {
+                    'content': content,
+                    'metadata': metadata,
+                    'timestamp': os.path.getmtime(f)
+                }
+            except Exception as e:
+                logger.warning('Could not process %s\n%s' % (f, str(e)))
+                content, metadata = None, None
+
+        cache.close()
+        return content, metadata
 
     def add_source_path(self, content):
         location = content.get_relative_source_path()
