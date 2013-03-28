@@ -29,6 +29,9 @@ try:
 except ImportError:
     from HTMLParser import HTMLParser
 
+import json
+import datetime
+
 from pelican.contents import Category, Tag, Author
 from pelican.utils import get_date, pelican_open
 
@@ -314,6 +317,78 @@ class AsciiDocReader(Reader):
         if 'doctitle' in metadata:
             metadata['title'] = metadata['doctitle']
         return content, metadata
+
+
+class Cache(object):
+    def __init__(self, path, settings):
+        self.settings = settings
+        self.path = path
+        self.caching = self.settings.get('CACHING', False)
+        self.caching_output = self.settings.get('CACHE_OUTPUT', False)
+
+    def load(self):
+        cache_file = self.settings.get('CACHE_FILE', '.cache.json')
+        self.cache_path = os.path.normpath(os.path.join(self.path, cache_file))
+        if os.path.exists(self.path):
+            with open(self.cache_path) as f:
+                self._cache = json.load(f, encoding='utf-8')
+        else:
+            self._cache = {}
+
+    def save(self):
+        with open(self.cache_path, 'w') as f:
+            json.dump(self._cache, f, encoding='utf-8')
+
+    def get(self, path):
+        if self.caching:
+            return self._get_cached(path)
+        else:
+            content, metadata = read_file(path, settings=self.settings)
+            metadata['regenerate'] = True
+            return content, metadata
+
+    def _get_cached(self, path):
+        mtime = os.stat(path).st_mtime
+        if (path not in self._cache or
+            mtime > self._cache[path]['mtime']):
+            content, metadata = read_file(path, settings=self.settings)
+            metadata['regenerate'] = True
+            self._cache[path] = {'mtime': mtime,
+                                 'content': content,
+                                 'metadata': self._encode_metadata(metadata)}
+        else:
+            cached = self._cache[path]
+            content = cached['content']
+            metadata = self._decode_metadata(cached['metadata'])
+            metadata['regenerate'] = not self.caching_output
+        return content, metadata
+
+    def _encode_metadata(self, metadata):
+        metadata = metadata.copy()
+        if 'tags' in metadata:
+            metadata['tags'] = [str(tag) for tag in metadata['tags']]
+        if 'author' in metadata:
+            metadata['author'] = str(metadata['author'])
+        if 'category' in metadata:
+            metadata['category'] = str(metadata['category'])
+        if 'date' in metadata:
+            metadata['date'] = metadata['date'].isoformat()
+        return metadata
+
+    def _decode_metadata(self, metadata):
+        metadata = metadata.copy()
+        if 'tags' in metadata:
+            metadata['tags'] = [Tag(tag, self.settings) for tag in metadata['tags']]
+        if 'author' in metadata:
+            metadata['author'] = Author(metadata['author'], self.settings)
+        if 'category' in metadata:
+            metadata['category'] = Category(metadata['category'], self.settings)
+        if 'date' in metadata:
+            metadata['date'] = datetime.datetime.strptime(
+                metadata['date'], '%Y-%m-%dT%H:%M:%S')
+        return metadata
+
+
 
 
 EXTENSIONS = {}

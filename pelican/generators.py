@@ -22,7 +22,7 @@ from jinja2 import (
 from pelican.contents import (
         Article, Page, Category, Static, is_valid_content
 )
-from pelican.readers import read_file
+from pelican.readers import Cache, read_file
 from pelican.utils import copy, process_translations, mkdir_p
 from pelican import signals
 import pelican.utils
@@ -41,6 +41,9 @@ class Generator(object):
 
         for arg, value in kwargs.items():
             setattr(self, arg, value)
+
+        # article cache
+        self._cache = Cache(self.path, self.settings)
 
         # templates cache
         self._templates = {}
@@ -254,8 +257,9 @@ class ArticlesGenerator(Generator):
     def generate_articles(self, write):
         """Generate the articles."""
         for article in chain(self.translations, self.articles):
-            write(article.save_as, self.get_template(article.template),
-                self.context, article=article, category=article.category)
+            if article.metadata.get('regenerate', True):
+                write(article.save_as, self.get_template(article.template),
+                    self.context, article=article, category=article.category)
 
     def generate_period_archives(self, write):
         """Generate per-year, per-month, and per-day archives."""
@@ -371,6 +375,7 @@ class ArticlesGenerator(Generator):
 
     def generate_context(self):
         """Add the articles into the shared context"""
+        self._cache.load()
 
         article_path = os.path.normpath(  # we have to remove trailing slashes
             os.path.join(self.path, self.settings['ARTICLE_DIR'])
@@ -381,7 +386,7 @@ class ArticlesGenerator(Generator):
                 exclude=self.settings['ARTICLE_EXCLUDES']):
             try:
                 signals.article_generate_preread.send(self)
-                content, metadata = read_file(f, settings=self.settings)
+                content, metadata = self._cache.get(f)
             except Exception as e:
                 logger.warning('Could not process %s\n%s' % (f, str(e)))
                 continue
@@ -489,6 +494,7 @@ class ArticlesGenerator(Generator):
     def generate_output(self, writer):
         self.generate_feeds(writer)
         self.generate_pages(writer)
+        self._cache.save()
 
 
 class PagesGenerator(Generator):
@@ -502,13 +508,15 @@ class PagesGenerator(Generator):
         signals.pages_generator_init.send(self)
 
     def generate_context(self):
+        self._cache.load()
+
         all_pages = []
         hidden_pages = []
         for f in self.get_files(
                 os.path.join(self.path, self.settings['PAGE_DIR']),
                 exclude=self.settings['PAGE_EXCLUDES']):
             try:
-                content, metadata = read_file(f, settings=self.settings)
+                content, metadata = self._cache.get(f)
             except Exception as e:
                 logger.warning('Could not process %s\n%s' % (f, str(e)))
                 continue
