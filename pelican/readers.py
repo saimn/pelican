@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, print_function
 
+import datetime
 import os
 import re
+import six
+
 try:
     import docutils
     import docutils.core
@@ -13,19 +16,28 @@ try:
     from pelican import rstdirectives  # NOQA
 except ImportError:
     core = False
+
+try:
+    import yaml
+except ImportError:
+    yaml = False  # NOQA
+
 try:
     from markdown import Markdown
 except ImportError:
     Markdown = False  # NOQA
+
 try:
     from asciidocapi import AsciiDocAPI
     asciidoc = True
 except ImportError:
     asciidoc = False
+
 try:
     from html import escape
 except ImportError:
     from cgi import escape
+
 try:
     from html.parser import HTMLParser
 except ImportError:
@@ -325,6 +337,43 @@ class AsciiDocReader(Reader):
             metadata[name] = self.process_metadata(name, value)
         if 'doctitle' in metadata:
             metadata['title'] = metadata['doctitle']
+        return content, metadata
+
+
+class YamlReader(Reader):
+    enabled = bool(yaml)
+    file_extensions = ['yml']
+
+    def read(self, filename):
+        """Parse content and metadata of YAML files"""
+
+        with pelican_open(filename) as source:
+            _, yml_meta, content = source.split('---', 2)
+
+        md = yaml.load(yml_meta)
+        metadata = {}
+
+        for key, value in md.items():
+            name = key.lower()
+
+            if name == "tags":
+                if isinstance(value, list):
+                    value = ",".join(value)
+
+                metadata[name] = self.process_metadata(name, value)
+            elif name == 'date':
+                # yaml returns date as a datetime.date object.
+                if isinstance(name, six.string_types):
+                    metadata[name] = self.process_metadata(name, unicode(value))
+                elif isinstance(name, datetime.date):
+                    metadata[name] = datetime.combine(value, datetime.time(0))
+                elif isinstance(name, datetime.datetime):
+                    metadata[name] = value
+                # else: TODO
+                #     logger.warning
+            else:
+                metadata[name] = self.process_metadata(name, unicode(value))
+
         return content, metadata
 
 
