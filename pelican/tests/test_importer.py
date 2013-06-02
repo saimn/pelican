@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+from __future__ import unicode_literals
 
 import os
 import re
 
-from pelican.tools.pelican_import import wp2fields, fields2pelican, decode_wp_content
-from pelican.tests.support import (unittest, temporary_folder, mute,
-                                   skipIfNoExecutable)
+from .support import unittest, temporary_folder, mute, skipIfNoExecutable
+from ..tools.pelican_import import wp2fields, fields2pelican, decode_wp_content
 
 CUR_DIR = os.path.dirname(__file__)
 WORDPRESS_XML_SAMPLE = os.path.join(CUR_DIR, 'content', 'wordpressexport.xml')

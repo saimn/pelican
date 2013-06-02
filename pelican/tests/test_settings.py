@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+
+from __future__ import unicode_literals
+
 import copy
 import os
 from os.path import dirname, abspath, join
 
-from pelican.settings import (read_settings, configure_settings,
-                              _DEFAULT_CONFIG, DEFAULT_THEME)
-from pelican.tests.support import unittest
+from .support import unittest
+from ..settings import (read_settings, configure_settings,
+                        _DEFAULT_CONFIG, DEFAULT_THEME)
 
 
 class TestSettingsConfiguration(unittest.TestCase):

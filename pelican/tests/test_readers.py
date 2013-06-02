@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+from __future__ import unicode_literals
 
 import datetime
 import os
 
-from pelican import readers
-from pelican.tests.support import unittest
+from .support import unittest
+from .. import readers
 
 CUR_DIR = os.path.dirname(__file__)
 CONTENT_PATH = os.path.join(CUR_DIR, 'content')
@@ -156,7 +156,7 @@ class MdReaderTest(unittest.TestCase):
             ' with some footnotes'
             '<sup id="fnref:footnote"><a class="footnote-ref" '
             'href="#fn:footnote" rel="footnote">2</a></sup></p>\n'
-            
+
             '<div class="footnote">\n'
             '<hr />\n<ol>\n<li id="fn:1">\n'
             '<p>Numbered footnote&#160;'

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+from __future__ import unicode_literals
 
 import os
 from filecmp import dircmp
@@ -8,9 +8,9 @@ from shutil import rmtree
 import locale
 import logging
 
-from pelican import Pelican
-from pelican.settings import read_settings
-from pelican.tests.support import LoggedTestCase, mute
+from .support import LoggedTestCase, mute
+from .. import Pelican
+from ..settings import read_settings
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLES_PATH = os.path.abspath(os.path.join(

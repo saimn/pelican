@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+
+from __future__ import unicode_literals
+
 __all__ = ['get_article', 'unittest', ]
 
+import locale
+import logging
 import os
 import re
 import subprocess
 import sys
-from six import StringIO
-import logging
-from logging.handlers import BufferingHandler
 import unittest
-import locale
 
-from functools import wraps
 from contextlib import contextmanager
-from tempfile import mkdtemp
+from functools import wraps
+from logging.handlers import BufferingHandler
 from shutil import rmtree
+from six import StringIO
+from tempfile import mkdtemp
 
 from pelican.contents import Article
 from pelican.settings import _DEFAULT_CONFIG

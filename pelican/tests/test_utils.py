@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
+
+from __future__ import unicode_literals
+
 import logging
 import shutil
 import os
@@ -9,11 +11,11 @@ import locale
 from sys import platform
 from tempfile import mkdtemp
 
-from pelican.generators import TemplatePagesGenerator
-from pelican.writers import Writer
-from pelican.settings import read_settings
-from pelican import utils
 from .support import get_article, LoggedTestCase, locale_available, unittest
+from .. import utils
+from ..generators import TemplatePagesGenerator
+from ..writers import Writer
+from ..settings import read_settings
 
 
 class TestUtils(LoggedTestCase):

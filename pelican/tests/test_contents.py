@@ -2,15 +2,14 @@
 from __future__ import unicode_literals
 
 from datetime import datetime
+from jinja2.utils import generate_lorem_ipsum
 from sys import platform
 
 from .support import unittest
-
-from pelican.contents import Page, Article, URLWrapper
-from pelican.settings import _DEFAULT_CONFIG
-from pelican.utils import truncate_html_words
-from pelican.signals import content_object_init
-from jinja2.utils import generate_lorem_ipsum
+from ..contents import Page, Article, URLWrapper
+from ..settings import _DEFAULT_CONFIG
+from ..utils import truncate_html_words
+from ..signals import content_object_init
 
 # generate one paragraph, enclosed with <p>
 TEST_CONTENT = str(generate_lorem_ipsum(n=1))
