@@ -23,12 +23,12 @@ class TestSettingsConfiguration(unittest.TestCase):
     def test_overwrite_existing_settings(self):
         self.assertEqual(self.settings.get('SITENAME'), "Alexis' log")
         self.assertEqual(self.settings.get('SITEURL'),
-                'http://blog.notmyidea.org')
+                         'http://blog.notmyidea.org')
 
     def test_keep_default_settings(self):
         # Keep default settings if not defined.
         self.assertEqual(self.settings.get('DEFAULT_CATEGORY'),
-            DEFAULT_CONFIG['DEFAULT_CATEGORY'])
+                         DEFAULT_CONFIG['DEFAULT_CATEGORY'])
 
     def test_dont_copy_small_keys(self):
         # Do not copy keys not in caps.
@@ -61,28 +61,28 @@ class TestSettingsConfiguration(unittest.TestCase):
     def test_path_settings_safety(self):
         """Don't let people setting the static path listings to strs"""
         settings = {'STATIC_PATHS': 'foo/bar',
-                'THEME_STATIC_PATHS': 'bar/baz',
-                # These 4 settings are required to run configure_settings
-                'PATH': '.',
-                'THEME': DEFAULT_THEME,
-                'SITEURL': 'http://blog.notmyidea.org/',
-                'LOCALE': '',
-                }
+                    'THEME_STATIC_PATHS': 'bar/baz',
+                    # These 4 settings are required to run configure_settings
+                    'PATH': '.',
+                    'THEME': DEFAULT_THEME,
+                    'SITEURL': 'http://blog.notmyidea.org/',
+                    'LOCALE': '',
+                    }
         configure_settings(settings)
         self.assertEqual(settings['STATIC_PATHS'],
-                DEFAULT_CONFIG['STATIC_PATHS'])
+                         DEFAULT_CONFIG['STATIC_PATHS'])
         self.assertEqual(settings['THEME_STATIC_PATHS'],
-                DEFAULT_CONFIG['THEME_STATIC_PATHS'])
+                         DEFAULT_CONFIG['THEME_STATIC_PATHS'])
 
     def test_configure_settings(self):
         #Manipulations to settings should be applied correctly.
 
         settings = {
-                'SITEURL': 'http://blog.notmyidea.org/',
-                'LOCALE': '',
-                'PATH': os.curdir,
-                'THEME': DEFAULT_THEME,
-                }
+            'SITEURL': 'http://blog.notmyidea.org/',
+            'LOCALE': '',
+            'PATH': os.curdir,
+            'THEME': DEFAULT_THEME,
+        }
         configure_settings(settings)
         # SITEURL should not have a trailing slash
         self.assertEqual(settings['SITEURL'], 'http://blog.notmyidea.org')

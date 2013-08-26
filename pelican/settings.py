@@ -114,23 +114,33 @@ DEFAULT_CONFIG = {
 
 
 def read_settings(path=None, override=None):
+    """Read and configure settings.
+
+    If no settings file is given (`path`), the default settings are used.
+
+    :param path: path to a settings file.
+    :param override: dict to override the settings.
+    """
     if path:
-        local_settings = get_settings_from_file(path)
-        # Make the paths relative to the settings file
+        settings = get_settings_from_file(path)
+
         for p in ['PATH', 'OUTPUT_PATH', 'THEME', 'PLUGIN_PATH']:
-            if p in local_settings and local_settings[p] is not None \
-                    and not isabs(local_settings[p]):
+            settings[p] = os.path.expanduser(settings[p])
+
+            # Make the paths relative to the settings file
+            if p in settings and settings[p] is not None \
+                    and not isabs(settings[p]):
                 absp = os.path.abspath(os.path.normpath(os.path.join(
-                    os.path.dirname(path), local_settings[p])))
+                    os.path.dirname(path), settings[p])))
                 if p not in ('THEME', 'PLUGIN_PATH') or os.path.exists(absp):
-                    local_settings[p] = absp
+                    settings[p] = absp
     else:
-        local_settings = copy.deepcopy(DEFAULT_CONFIG)
+        settings = copy.deepcopy(DEFAULT_CONFIG)
 
     if override:
-        local_settings.update(override)
+        settings.update(override)
 
-    return configure_settings(local_settings)
+    return configure_settings(settings)
 
 
 def get_settings_from_module(module=None, default_settings=DEFAULT_CONFIG):
